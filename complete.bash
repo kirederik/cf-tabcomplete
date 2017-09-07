@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-rm "$HOME/.cf_complete_apps"
+APPS_FILE="${APPS_FILE:-"$HOME/.cf_complete_apps"}"
+
+rm "$APPS_FILE"
 
 _complete_cf() {
   COMPREPLY=()
@@ -35,12 +37,18 @@ __cf_commands() {
 }
 
 __cf_apps() {
-  local apps_file
-  apps_file="$HOME/.cf_complete_apps"
-  if [ ! -f "$apps_file" ] && ! test "$(find "$apps_file" -mtime -60s 1>&2 2>/dev/null)"; then
-    cf apps > "$apps_file"
+  local cf_apps_list
+
+  if [ ! -s "$APPS_FILE" ] && ! test "$(find "$APPS_FILE" -mtime -60s 1>&2 2>/dev/null)"; then
+    cf_apps_list="$(cf apps | sed -e '1,/name/d' | awk -v ORS=" " '{print $1}')"
+    if [ -n "$cf_apps_list" ]; then
+      echo "$cf_apps_list" > "$APPS_FILE"
+    fi
+  else
+    cf_apps_list="$(cat "$APPS_FILE")"
   fi
-  cat "$apps_file" | sed -e '1,/name/d' | awk -v ORS=" " '{print $1}'
+
+  echo "$cf_apps_list"
 }
 
 complete -F _complete_cf -o bashdefault cf
